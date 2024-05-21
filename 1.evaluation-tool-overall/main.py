@@ -126,9 +126,7 @@ def extract_mappings(args):
     pmb = PMB(Config.DATA_SPLIT.TRAIN, args.language)
 
     for filepath in pmb.generator(
-        args.starting_path,
-        f"**/*.sbn",
-        desc_tqdm="Extracting mappings",
+        args.starting_path, f"**/*.sbn", desc_tqdm="Extracting mappings",
     ):
         ud_filepath = (
             filepath.parent / f"{args.language}.ud.{args.ud_system}.conll"

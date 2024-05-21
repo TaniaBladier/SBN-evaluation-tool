@@ -15,14 +15,10 @@ logger = logging.getLogger(__name__)
 def get_args() -> Namespace:
     parser = ArgumentParser()
     parser.add_argument(
-        "--sentence",
-        type=str,
-        help="Sentence to transform to SBN.",
+        "--sentence", type=str, help="Sentence to transform to SBN.",
     )
     parser.add_argument(
-        "--ud",
-        type=str,
-        help="Path to UD conll parse to transform to SBN.",
+        "--ud", type=str, help="Path to UD conll parse to transform to SBN.",
     )
     parser.add_argument(
         "-l",
@@ -111,8 +107,7 @@ def main():
     if args.store_penman:
         res.to_penman(output_dir / f"{args.language}.drs.penman")
         res.to_penman(
-            output_dir / f"{args.language}.drs.lenient.penman",
-            strict=False,
+            output_dir / f"{args.language}.drs.lenient.penman", strict=False,
         )
 
 

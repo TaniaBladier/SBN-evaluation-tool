@@ -30,9 +30,7 @@ def get_args() -> Namespace:
         help="Path to start recursively search for SBN files.",
     )
     parser.add_argument(
-        "--input_file",
-        type=str,
-        help="Path to se2seq output file.",
+        "--input_file", type=str, help="Path to se2seq output file.",
     )
     parser.add_argument(
         "-l",

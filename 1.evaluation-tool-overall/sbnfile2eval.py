@@ -1,22 +1,26 @@
-import logging
-from argparse import ArgumentParser, Namespace
 import concurrent.futures
-import tempfile
-from typing import Any, Dict, Generator, Optional
-from tqdm.contrib.logging import logging_redirect_tqdm
-from tqdm import tqdm
-import pandas as pd
-from ud_boxer.sbn import SBNGraph, SBNSource
-from datetime import datetime
-import os
-from ud_boxer.sbn_spec import SBNError, get_base_id, get_doc_id
-from ud_boxer.misc import ensure_ext
-from os import PathLike
 import json
-import subprocess
+import logging
+import os
 import re
+import subprocess
+import tempfile
+from argparse import ArgumentParser, Namespace
+from datetime import datetime
+from os import PathLike
+from typing import Any, Dict, Generator, Optional
+
+import pandas as pd
+from tqdm import tqdm
+from tqdm.contrib.logging import logging_redirect_tqdm
+
+from ud_boxer.misc import ensure_ext
+from ud_boxer.sbn import SBNGraph, SBNSource
+from ud_boxer.sbn_spec import SBNError, get_base_id, get_doc_id
+
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
+
 
 def get_args() -> Namespace:
     parser = ArgumentParser()
@@ -61,8 +65,8 @@ def get_args() -> Namespace:
         "--max_workers",
         default=16,
         help="Max concurrent workers used to run inference with. Be careful "
-             "with setting this too high since mtool might error (segfault) if hit "
-             "too hard by too many concurrent tasks.",
+        "with setting this too high since mtool might error (segfault) if hit "
+        "too hard by too many concurrent tasks.",
     )
     return parser.parse_args()
 
@@ -77,6 +81,7 @@ _KEY_MAPPING = {
     "f": "f1",
 }
 _RELEVANT_ITEMS = ["p", "r", "f"]
+
 
 def create_record(
     pmb_id: str,
@@ -124,21 +129,36 @@ def smatch_score(gold: PathLike, test: PathLike) -> Dict[str, float]:
 
     return clean_dict
 
+
 def generate_result(args, test_sbn_line, path):
-    gold_strict_path = os.path.join(args.results_path, path, f"{args.lang}.gold.strict.penman")
-    gold_lenient_path = os.path.join(args.results_path, path, f"{args.lang}.gold.lenient.penman")
-    test_path_strict = os.path.join(args.results_path, path, f"{args.lang}.test.strict")
-    test_path_lenient = os.path.join(args.results_path, path, f"{args.lang}.test.lenient")
+    gold_strict_path = os.path.join(
+        args.results_path, path, f"{args.lang}.gold.strict.penman"
+    )
+    gold_lenient_path = os.path.join(
+        args.results_path, path, f"{args.lang}.gold.lenient.penman"
+    )
+    test_path_strict = os.path.join(
+        args.results_path, path, f"{args.lang}.test.strict"
+    )
+    test_path_lenient = os.path.join(
+        args.results_path, path, f"{args.lang}.test.lenient"
+    )
     G = SBNGraph(source=args.sbn_source).from_string(test_sbn_line)
     lenient_err, strict_err = None, None
-    with open(test_path_strict, 'w') as f_s, open(test_path_lenient, 'w') as f_l:
+    with open(test_path_strict, "w") as f_s, open(
+        test_path_lenient, "w"
+    ) as f_l:
         try:
-            strict_scores = smatch_score(gold_strict_path, G.to_penman(f_s.name))
+            strict_scores = smatch_score(
+                gold_strict_path, G.to_penman(f_s.name)
+            )
         except SBNError as e_strict:
             strict_scores = dict()
             strict_err = str(e_strict)
         try:
-            lenient_scores = smatch_score(gold_lenient_path, G.to_penman(f_l.name, strict=False))
+            lenient_scores = smatch_score(
+                gold_lenient_path, G.to_penman(f_l.name, strict=False)
+            )
         except SBNError as e:
             lenient_scores = dict()
             lenient_err = str(e)
@@ -179,6 +199,7 @@ def full_run(args, test_sbn_line, gold_sbn):
     )
     return record
 
+
 def store_penman(args, gold_sbn):
     for file_line in gold_sbn:
         path = file_line.split("\t")[0]
@@ -188,8 +209,12 @@ def store_penman(args, gold_sbn):
             os.makedirs(filepath)
     for file_line in gold_sbn:
         path = file_line.split("\t")[0]
-        filepath_strict = os.path.join(args.results_path, path, f"{args.lang}.gold.strict.penman")
-        filepath_lenient = os.path.join(args.results_path, path, f"{args.lang}.gold.lenient.penman")
+        filepath_strict = os.path.join(
+            args.results_path, path, f"{args.lang}.gold.strict.penman"
+        )
+        filepath_lenient = os.path.join(
+            args.results_path, path, f"{args.lang}.gold.lenient.penman"
+        )
         gold_sbn_line = file_line.split("\t")[-1]
         try:
             G = SBNGraph().from_string(gold_sbn_line)
@@ -198,28 +223,43 @@ def store_penman(args, gold_sbn):
         except SBNError as e:
             logger.warning(e)
 
+
 def merge_penman(args, gold_sbn_list):
-    one_test_penman = os.path.join(args.results_path, f"{args.lang}.test.penman")
-    one_gold_penman = os.path.join(args.results_path, f"{args.lang}.gold.penman")
-    with open(one_test_penman, 'w') as testfile, open(one_gold_penman, 'w') as goldfile:
+    one_test_penman = os.path.join(
+        args.results_path, f"{args.lang}.test.penman"
+    )
+    one_gold_penman = os.path.join(
+        args.results_path, f"{args.lang}.gold.penman"
+    )
+    with open(one_test_penman, "w") as testfile, open(
+        one_gold_penman, "w"
+    ) as goldfile:
         for file_line in gold_sbn_list:
             path = file_line.split("\t")[0]
-            test_filepath = os.path.join(args.results_path, path, f"{args.lang}.test.strict.penman")
-            gold_filepath = os.path.join(args.results_path, path, f"{args.lang}.gold.strict.penman")
-            if os.path.exists(test_filepath) and os.path.getsize(test_filepath):
-                f1 = open(test_filepath, 'r')
+            test_filepath = os.path.join(
+                args.results_path, path, f"{args.lang}.test.strict.penman"
+            )
+            gold_filepath = os.path.join(
+                args.results_path, path, f"{args.lang}.gold.strict.penman"
+            )
+            if os.path.exists(test_filepath) and os.path.getsize(
+                test_filepath
+            ):
+                f1 = open(test_filepath, "r")
                 testfile.writelines(f1.readlines())
-                testfile.write('\n' + '\n')
+                testfile.write("\n" + "\n")
                 f1.close()
-                f2 = open(gold_filepath, 'r')
+                f2 = open(gold_filepath, "r")
                 goldfile.writelines(f2.readlines())
-                goldfile.write('\n' + '\n')
+                goldfile.write("\n" + "\n")
                 f2.close()
 
 
 def main():
     args = get_args()
-    with open(args.test_sbn, 'r') as test_input, open(args.gold_sbn, 'r') as gold_input:
+    with open(args.test_sbn, "r") as test_input, open(
+        args.gold_sbn, "r"
+    ) as gold_input:
         test_sbn_list = []
         gold_sbn_list = []
         for line in test_input:
@@ -234,7 +274,9 @@ def main():
         futures = []
         for index, gold_sbn_line in enumerate(gold_sbn_list):
             test_sbn_line = test_sbn_list[index]
-            futures.append(executor.submit(full_run, args, test_sbn_line, gold_sbn_line))
+            futures.append(
+                executor.submit(full_run, args, test_sbn_line, gold_sbn_line)
+            )
         result_records = [
             res.result()
             for res in tqdm(
@@ -270,6 +312,7 @@ def main():
         f.write(f"{overall_result_msg}\n\n")
 
     print(overall_result_msg)
+
 
 if __name__ == "__main__":
     with logging_redirect_tqdm():

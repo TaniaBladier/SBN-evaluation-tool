@@ -19,9 +19,7 @@ __all__ = [
 
 class PMB:
     def __init__(
-        self,
-        split: Config.DATA_SPLIT,
-        language: Config.SUPPORTED_LANGUAGES,
+        self, split: Config.DATA_SPLIT, language: Config.SUPPORTED_LANGUAGES,
     ):
         if split == Config.DATA_SPLIT.ALL:
             self.ids = set()
@@ -47,11 +45,7 @@ class PMB:
         yield from (
             path
             for path in pmb_generator(
-                starting_path,
-                pattern,
-                exclude,
-                disable_tqdm,
-                desc_tqdm,
+                starting_path, pattern, exclude, disable_tqdm, desc_tqdm,
             )
             if test(path)
         )

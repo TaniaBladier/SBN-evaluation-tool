@@ -72,12 +72,12 @@ class SBNGraph(BaseGraph):
         """Construct a graph from a single SBN string."""
         # Determine if we're dealing with an SBN file with newlines (from the
         # PMB for instance) or without (from neural output).
-        
+
         if "\n" not in input_string:
             input_string = split_single(input_string)
-        
+
         lines = split_comments(input_string)
-        
+
         if not lines:
             raise SBNError(
                 "SBN doc appears to be empty, cannot read from string"
@@ -92,7 +92,7 @@ class SBNGraph(BaseGraph):
         nodes, edges = [starting_box], []
 
         max_wn_idx = len(lines) - 1
-       
+
         for sbn_line, comment in lines:
             tokens = sbn_line.split()
 
@@ -133,7 +133,7 @@ class SBNGraph(BaseGraph):
                             f"Missing box index in line: {sbn_line}"
                         )
 
-                    #if (box_index := self._try_parse_idx(tokens.pop(0))) != -1:
+                    # if (box_index := self._try_parse_idx(tokens.pop(0))) != -1:
                     if "<" not in (box_index := str(tokens.pop(0))):
                         raise SBNError(
                             f"Unexpected box index found '{box_index}'"
@@ -223,9 +223,7 @@ class SBNGraph(BaseGraph):
                         name = " ".join(name_parts)
 
                         name_node = self.create_node(
-                            SBN_NODE_TYPE.CONSTANT,
-                            name,
-                            {"comment": comment},
+                            SBN_NODE_TYPE.CONSTANT, name, {"comment": comment},
                         )
                         role_edge = self.create_edge(
                             self._active_synset_id,
@@ -306,19 +304,14 @@ class SBNGraph(BaseGraph):
 
             if from_type == SBN_NODE_TYPE.SYNSET:
                 box_edge = self.create_edge(
-                    self._active_box_id,
-                    from_id,
-                    SBN_EDGE_TYPE.BOX_CONNECT,
+                    self._active_box_id, from_id, SBN_EDGE_TYPE.BOX_CONNECT,
                 )
                 edges.append(box_edge)
 
             for edge_name, grew_to_node_id in grew_edges:
                 to_id = id_mapping[grew_to_node_id]
                 edge_components = RESOLVER.edge_token_type(
-                    edge_name,
-                    self.nodes,
-                    from_id,
-                    to_id,
+                    edge_name, self.nodes, from_id, to_id,
                 )
 
                 edge = self.create_edge(from_id, to_id, *edge_components)
@@ -609,13 +602,19 @@ class SBNGraph(BaseGraph):
                         raise SBNError(f"Cannot split synset id: {node_tok}")
                     lemma, pos, sense = [self.quote(i) for i in components]
                     ### changed part
-                    wordnet = lemma.strip('"') + '.' + pos.strip('"') + '.' + sense.strip('"')
-                    out_str += f'({var_id} / {self.quote(wordnet)}'
+                    wordnet = (
+                        lemma.strip('"')
+                        + "."
+                        + pos.strip('"')
+                        + "."
+                        + sense.strip('"')
+                    )
+                    out_str += f"({var_id} / {self.quote(wordnet)}"
                 elif var_id[0] != "c":
                     out_str += f"({var_id} / {self.quote(node_tok)}"
                 else:
                     out_str += f"{self.quote(node_tok)}"
-            else: # if strict == False
+            else:  # if strict == False
                 if node_data["type"] == SBN_NODE_TYPE.SYNSET:
                     if not (components := split_synset_id(node_tok)):
                         raise SBNError(f"Cannot split synset id: {node_tok}")
@@ -656,15 +655,15 @@ class SBNGraph(BaseGraph):
         starting_node = (SBN_NODE_TYPE.BOX, 0)
         final_result = __to_penman_str(G, starting_node, set(), "", 1)
 
-#try:
-#            g = penman.decode(final_result)
-#
-#            if errors := pm_model.errors(g):
-#                raise penman.DecodeError(str(errors))
-#
-#            assert len(g.edges()) == len(self.edges), "Wrong number of edges"
-#        except (penman.DecodeError, AssertionError) as e:
-#            raise SBNError(f"Generated Penman output is invalid: {e}")
+        # try:
+        #            g = penman.decode(final_result)
+        #
+        #            if errors := pm_model.errors(g):
+        #                raise penman.DecodeError(str(errors))
+        #
+        #            assert len(g.edges()) == len(self.edges), "Wrong number of edges"
+        #        except (penman.DecodeError, AssertionError) as e:
+        #            raise SBNError(f"Generated Penman output is invalid: {e}")
 
         return final_result
 
